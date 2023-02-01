@@ -3,8 +3,9 @@ import itertools
 import glob
 from pathlib import Path
 import numpy as np
-import pandas as pd
-import rioxarray 
+#import pandas as pd
+#import rioxarray
+from rasterio.enums import Resampling
 
 def multiple_file_types(input_directory, patterns, recursive=False):
     """
@@ -21,7 +22,7 @@ def multiple_file_types(input_directory, patterns, recursive=False):
         expression = "/**/*"
     else:
         expression = "/*"
-    return itertools.chain.from_iterable(glob.iglob(input_directory + \
+    return itertools.chain.from_iterable(glob.iglob(input_directory +
                                                     expression + pattern,
                                                     recursive=recursive) for pattern in patterns)
 
@@ -37,7 +38,7 @@ def filename(path):
     """
     return Path(path).stem
 
-def swap_values(flattened_np,listOfInLists,listOfSwappingValues):
+def swap_values(flattened_np, listOfInLists, listOfSwappingValues):
 	"""
 	Takes each list in listOfInLists and swaps it by the
 	corresponding value in listOfSwappingValues.
@@ -48,7 +49,7 @@ def swap_values(flattened_np,listOfInLists,listOfSwappingValues):
     3 and 4 will become 11
     """
 	aux=flattened_np
-	if len(listOfInLists)!=len(listOfSwappingValues):
+	if len(listOfInLists) != len(listOfSwappingValues):
 		print("Lists must be of the same length.")
 	else:
 		for i in range(len(listOfInLists)):
@@ -56,5 +57,41 @@ def swap_values(flattened_np,listOfInLists,listOfSwappingValues):
 			nparray = np.array(listOfInLists[i])
 			found_idx = np.in1d(flattened_np,nparray)
 			aux[found_idx]=listOfSwappingValues[i]
-	aux = aux.astype(int)
 	return aux
+
+def lc_overlay(data,
+               raster,
+               reference_raster,
+               lcids=[1, 2, 3, 4, 5, 6],
+               lclabels=['forest', 'nonforest', 'farming', 'nonvegatated', 'water', 'none'],
+               nanmask=None):
+    """
+    Overlays a coarse reference grid on a fine categorical raster (e.g. land cover) and calculates the proportion
+    of each class inside each coarse cell. Returns a data frame.
+    """
+    raster_aux = raster.copy()
+    data_aux = data.copy()
+
+    data_aux[data_aux != lcids[0]] = 0
+    data_aux[nanmask] = np.nan
+    raster_aux.values = data_aux
+    raster_aux = raster_aux.rio.reproject_match(reference_raster, resampling=Resampling.average)
+    raster_aux = raster_aux.assign_coords({"x": reference_raster.x, "y": reference_raster.y, })
+    xds_match_df = raster_aux.to_dataframe()
+    xds_match_df.rename(columns={"band_data": lclabels[0]})
+    print(xds_match_df.head)
+
+    if len(lcids) > 1:
+        for i in range(len(lcids)-1):
+            raster_aux = raster.copy()
+            data_aux = data.copy()
+
+            data_aux[data_aux != lcids[i]] = 0
+            data_aux[nanmask] = np.nan
+            raster_aux.values = data_aux
+            raster_aux = raster_aux.rio.reproject_match(reference_raster, resampling=Resampling.average)
+            raster_aux = raster_aux.assign_coords({"x": reference_raster.x, "y": reference_raster.y, })
+            xds_match_df_aux = raster_aux.to_dataframe()
+            xds_match_df[lclabels[i+1]] = xds_match_df_aux['band_data']
+
+    return xds_match_df
