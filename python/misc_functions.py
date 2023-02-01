@@ -73,20 +73,21 @@ def lc_overlay(data,
     data_aux = data.copy()
 
     data_aux[data_aux != lcids[0]] = 0
+    data_aux[data_aux == lcids[0]] = 1
     data_aux[nanmask] = np.nan
     raster_aux.values = data_aux
     raster_aux = raster_aux.rio.reproject_match(reference_raster, resampling=Resampling.average)
     raster_aux = raster_aux.assign_coords({"x": reference_raster.x, "y": reference_raster.y, })
     xds_match_df = raster_aux.to_dataframe()
-    xds_match_df.rename(columns={"band_data": lclabels[0]})
-    print(xds_match_df.head)
+    xds_match_df.rename(columns={'band_data': lclabels[0]}, inplace=True)
 
     if len(lcids) > 1:
         for i in range(len(lcids)-1):
             raster_aux = raster.copy()
             data_aux = data.copy()
 
-            data_aux[data_aux != lcids[i]] = 0
+            data_aux[data_aux != lcids[i+1]] = 0
+            data_aux[data_aux == lcids[i+1]] = 1
             data_aux[nanmask] = np.nan
             raster_aux.values = data_aux
             raster_aux = raster_aux.rio.reproject_match(reference_raster, resampling=Resampling.average)

@@ -9,12 +9,14 @@ from misc_functions import lc_overlay
 
 PATHREFGRID = '../data/reference_grids/ref_grid_30by100.tif'
 PATHRASTERS = '../data/mapbiomas/'
-PATHRASTERSAGG = '../data/mapbiomas_agg/'
+PATHOUTPUT = '../data/training_tables/mapbiomas_lcc_v1.csv'
 
 nanvalue = 0
 newlcclasses = [1, 2, 3, 4, 5, 6]
 
 def main():
+
+    # TODO only processes the first two years of mapbiomas, add a loop here for all time steps.
     ref_grid = xarray.open_dataarray(PATHREFGRID)
 
     files = multiple_file_types(PATHRASTERS, ["*.tif"], recursive=True)
@@ -171,14 +173,16 @@ def main():
     # Create data set which is 1 when in t_{n} the class was forest and in t_{n+1} the class is farming or nonvegetated.
     data2 = np.logical_and(data1 == 1, np.logical_or(data2 == 3, data2 == 4))*1.0
 
-    print(np.max(data2))
-
     # Calculate class proportions overlay.
     data_df2 = lc_overlay(data2, raster, ref_grid, lcids=[1], lclabels=['forestloss'], nanmask=nan_mask)
 
+    # Add forest loss variable to data set.
     data_df1['forestloss'] = data_df2['forestloss']
 
-    print(data_df1.head)
+    # Drop NaNs and save to disk.
+    data_df1.dropna(inplace=True)
+
+    data_df1.to_csv(PATHOUTPUT, encoding='utf-8', index=False)
 
 if __name__ == "__main__":
     main()
