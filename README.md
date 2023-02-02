@@ -8,7 +8,7 @@ Also as a first example only considers the timesteps 1985 and 1986. The current 
 * Specifies a bayesian network in which the observations are the coarse 900m pixels. The explanatory variables are the % of the pixel covered by farming and by the non-vegetated classes in 1985. The target variable is a binary variable where 1=some amount of forest (1985) was transformed to either farming or non-vegatated (1986), 0=in any other case.
 
 <p align="center">
-  <img src="./imgs/1.firstbn.png" alt="500" width="738">
+  <img src="./imgs/1.firstbn.png" height="500" width="738">
 </p> 
 
  
